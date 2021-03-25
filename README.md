@@ -12,6 +12,7 @@ Tribble is a discord.js payment bot based off of [discord.js-menu](https://githu
 
 * [discord.js-menu](https://github.com/jowsey/discord.js-menu) by Jowsey
 * [googleapis](https://github.com/googleapis/google-api-nodejs-client) by Google
+* [DiscordTickets](https://github.com/discord-tickets/bot) and [leekslazylogger](https://github.com/eartharoid/leekslazylogger) by eartharoid
 
 ## Compiling 
 To compile the project do these things...
