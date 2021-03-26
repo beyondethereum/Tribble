@@ -4,15 +4,17 @@
  *  @author Dylan Bolger (FivePixels) <o5pxels@gmail.com>
  *  @license MIT
  *
- * Tribble Copyright (C) 2021 Dylan Bolger (FivePixels)
+ * Tribble Copyright (©) 2021 Dylan Bolger (FivePixels)
  *
  * This is free software, and you are welcome to redistribute it
  * under certain conditions. See the included LICENSE file for details.
  *
  */
 
-dev = true;
-require('dotenv').config({ path: dev ? 'dev.env' : '.env' });
+dev = true; // Change this if you are contributing to Tribble.
+const dotenvParseVariables = require('dotenv-parse-variables');
+env = require('dotenv').config({ path: dev ? 'dev.env' : '.env' });
+env = dotenvParseVariables(env.parsed)
 const Discord = require('discord.js');
 const Logger = require('leekslazylogger');
 const log = new Logger({
@@ -35,31 +37,39 @@ const settings = new enmap({
 });
 
 // check for all required variables
-if (!process.env.DISCORD_TOKEN ||
-    !process.env.GOOGLE_CLIENT_ID ||
-    !process.env.GOOGLE_CLIENT_SECRET ||
-    !process.env.GOOGLE_REFRESH_TOKEN ||
-    !process.env.GUILD_ID ||
-    !process.env.TICKET_CATEGORY_ID ||
-    !process.env.PURCHASED_ROLE_ID) {
+if ((!env.DISCORD_TOKEN ||
+    !env.GOOGLE_CLIENT_ID ||
+    !env.GOOGLE_CLIENT_SECRET ||
+    !env.GOOGLE_REFRESH_TOKEN ||
+    !env.GUILD_ID ||
+    !env.TICKET_CATEGORY_ID ||
+    !env.PURCHASED_ROLE_ID || 
+    typeof env.USE_CASHAPP !== 'boolean' ||
+    typeof env.USE_VENMO !== 'boolean' || 
+    typeof env.USE_PAYPAL !== 'boolean' ||
+    !env.PAYMENT_AMOUNT || 
+    !env.PAYMENT_CURRENCY) || 
+    (env.USE_CASHAPP && !env.CASHAPP_USERNAME) ||
+    (env.USE_VENMO && (!env.VENMO_USERNAME || !env.VENMO_4_DIGITS)) ||
+    (env.USE_PAYPAL && !env.PAYPALME_LINK)) {
     log.error('At least one required field is missing from the configuration. Check your .env file.');
     process.exit(1);
 }
 
-client.login(process.env.DISCORD_TOKEN)
+client.login(env.DISCORD_TOKEN)
 
 var auth = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET
+    env.GOOGLE_CLIENT_ID,
+    env.GOOGLE_CLIENT_SECRET
 );
 
-auth.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+auth.setCredentials({ refresh_token: env.GOOGLE_REFRESH_TOKEN });
 
 async function checkForEmail(auth, payment, code) {
     const gmail = google.gmail({ version: 'v1', auth });
     const res = await gmail.users.messages.list({
         userId: 'me',
-        q: `${payment} ${code} ${process.env.PAYMENT_AMOUNT}`
+        q: `${payment} ${code} ${env.PAYMENT_AMOUNT}`
     })
     const messages = res.data.messages;
     if (messages) {
@@ -74,15 +84,15 @@ client.on('ready', async () => {
     log.success(`Authenticated as ${client.user.tag}`);
     client.user.setPresence({
         activity: {
-            name: process.env.PRESENCE_ACTIVITY,
-            type: process.env.PRESENCE_TYPE.toUpperCase()
+            name: env.PRESENCE_ACTIVITY,
+            type: env.PRESENCE_TYPE.toUpperCase()
         }
     })
-    if (client.guilds.cache.get(process.env.GUILD_ID).member(client.user).hasPermission('ADMINISTRATOR', false)) {
+    if (client.guilds.cache.get((env.GUILD_ID).toString()).member(client.user).hasPermission('ADMINISTRATOR', false)) {
         log.success('Bot has the \'ADMINISTRATOR\' permission');
     } else log.warn('Bot does not have \'ADMINISTRATOR\' permission');
-    purchasedRole = client.guilds.cache.get(process.env.GUILD_ID).roles.cache.get(process.env.PURCHASED_ROLE_ID);
-    if (process.env.USE_CASHAPP) {
+    purchasedRole = client.guilds.cache.get(env.GUILD_ID).roles.cache.get(env.PURCHASED_ROLE_ID);
+    if (env.USE_CASHAPP) {
         cashappEmoji = client.emojis.cache.find(emoji => emoji.name === "cashapp");
         if (!cashappEmoji) {
             log.error(`Cash App emoji was not found. The emoji must be named "cashapp".`)
@@ -90,7 +100,7 @@ client.on('ready', async () => {
         }
         caEmojiID = cashappEmoji.id;
     }
-    if (process.env.USE_VENMO) {
+    if (env.USE_VENMO) {
         venmoEmoji = client.emojis.cache.find(emoji => emoji.name === "venmo");
         if (!venmoEmoji) {
             log.error(`Venmo emoji was not found. The emoji must be named "venmo".`)
@@ -98,7 +108,7 @@ client.on('ready', async () => {
         }
         vEmojiID = venmoEmoji.id;
     }
-    if (process.env.USE_PAYPAL) {
+    if (env.USE_PAYPAL) {
         paypalEmoji = client.emojis.cache.find(emoji => emoji.name === "paypal");
         if (!paypalEmoji) {
             log.error(`PayPal emoji was not found. The emoji must be named "paypal".`)
@@ -109,10 +119,10 @@ client.on('ready', async () => {
 })
 
 client.on('message', async message => {
-    if (message.content === `${process.env.COMMAND_PREFIX}close`) {
+    if (message.content === `${env.COMMAND_PREFIX}close`) {
         message.channel.delete();
     }
-    if (message.content === `${process.env.COMMAND_PREFIX}panel`) {
+    if (message.content === `${env.COMMAND_PREFIX}panel`) {
         let panel;
         let channel = message.channel;
         let messageID = settings.get('panel_message_id');
@@ -137,21 +147,21 @@ client.on('message', async message => {
         }
         message.delete();
         panel = await channel.send(new Discord.MessageEmbed()
-            .setTitle(process.env.PANEL_TITLE)
-            .setDescription(process.env.PANEL_DESCRIPTION)
-            .setColor(process.env.PANEL_COLOR)
-            .setFooter(process.env.PANEL_FOOTER)
-            .setThumbnail(process.env.PANEL_THUMBNAIL)
+            .setTitle(env.PANEL_TITLE)
+            .setDescription(env.PANEL_DESCRIPTION)
+            .setColor(env.PANEL_COLOR)
+            .setFooter(env.PANEL_FOOTER)
+            .setThumbnail(env.PANEL_THUMBNAIL)
         )
         log.info('New panel created successfully')
-        panel.react(process.env.PANEL_REACT_EMOJI)
+        panel.react(env.PANEL_REACT_EMOJI)
         settings.set('panel_message_id', panel.id)
     }
 })
 
 client.on('messageReactionAdd', async (reaction, user) => {
     if (user.bot) return;
-    if (reaction.message.id == settings.get('panel_message_id') && reaction.emoji.name == process.env.PANEL_REACT_EMOJI) {
+    if (reaction.message.id == settings.get('panel_message_id') && reaction.emoji.name == env.PANEL_REACT_EMOJI) {
         reaction.users.remove(user); // remove the reaction
         if (settings.get(`${user.id}`)) {
             id = settings.get(`${user.id}`)
@@ -163,7 +173,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
         var identifier = Math.floor(100000 + Math.random() * 900000); // generate a random, six-digit number.
         var ticket = `ticket-${identifier}`;
         reaction.message.guild.channels.create(ticket, {
-            parent: process.env.TICKET_CATEGORY_ID,
+            parent: env.TICKET_CATEGORY_ID,
             permissionOverwrites: [{
                 id: user.id,
                 allow: ["VIEW_CHANNEL"],
@@ -179,7 +189,58 @@ client.on('messageReactionAdd', async (reaction, user) => {
             ticketMember = reaction.message.guild.members.cache.get(user.id)
             identifier = identifier;
             settings.set(`${user.id}`, `${identifier}`);
-            let menu = new Menu(channel, user.id, [
+            let menu;
+            // configure paymentFields in menu
+            var paymentFields = [{
+                name: "Cash App",
+                value: "🇨",
+                inline: true
+            },
+            {
+                name: "Venmo",
+                value: "🇻",
+                inline: true
+            },
+            {
+                name: "PayPal",
+                value: "🇵",
+                inline: true
+            }]
+
+            // configure paymentReacts in menu
+            var paymentReacts = {
+                '🇨': async () => {
+                    selected = "cashapp";
+                    menu.setPage(2);
+                },
+                '🇻': async () => {
+                    selected = "venmo";
+                    menu.setPage(3);
+                },
+                '🇵': async () => {
+                    selected = "paypal";
+                    menu.setPage(4);
+                },
+                '❌': async () => {
+                    menu.stop()
+                    if (channel) {
+                        channel.delete();
+                    }
+                }
+            }
+            if (!env.USE_CASHAPP) {
+                paymentFields.splice(paymentFields.findIndex(({ name }) => name === "Cash App"), 1);
+                delete paymentReacts['🇨']
+            }
+            if (!env.USE_VENMO) {
+                paymentFields.splice(paymentFields.findIndex(({ name }) => name === "Venmo"), 1);
+                delete paymentReacts['🇻']
+            }
+            if (!env.USE_PAYPAL) {
+                paymentFields.splice(paymentFields.findIndex(({ name }) => name === "PayPal"), 1);
+                delete paymentReacts['🇵']
+            }
+            const pages = [
                 {
                     name: 'intro',
                     content: new Discord.MessageEmbed({
@@ -217,49 +278,9 @@ client.on('messageReactionAdd', async (reaction, user) => {
                         title: 'Select a Payment Method',
                         color: process.env.MENU_COLOR,
                         description: 'React with the payment method you are using to make the purchase.\n\n',
-                        fields: [
-                            {
-                                name: "Cash App",
-                                value: "🇨",
-                                inline: true
-                            },
-                            {
-                                name: "Venmo",
-                                value: "🇻",
-                                inline: true
-                            },
-                            {
-                                name: "PayPal",
-                                value: "🇵",
-                                inline: true
-                            },
-                            {
-                                name: "Cancel transaction",
-                                value: "❌",
-                                inline: true
-                            },
-                        ]
+                        fields: paymentFields
                     }),
-                    reactions: {
-                        '🇨': async () => {
-                            selected = "cashapp";
-                            menu.setPage(2);
-                        },
-                        '🇻': async () => {
-                            selected = "venmo";
-                            menu.setPage(3);
-                        },
-                        '🇵': async () => {
-                            selected = "paypal";
-                            menu.setPage(4);
-                        },
-                        '❌': async () => {
-                            menu.stop()
-                            if (channel) {
-                                channel.delete();
-                            }
-                        }
-                    }
+                    reactions: paymentReacts
                 },
                 {
                     name: 'cashapp',
@@ -508,7 +529,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
                     color: process.env.MENU_COLOR,
                     content: new Discord.MessageEmbed({
                         title: `Payment Successful`,
-                        description: `Your payment has been received! You have been granted access to the ${purchasedRole.name} role. Thank you!`,
+                        description: `Your payment has been received! You have been granted access to the \`${purchasedRole.name}\` role. Thank you!`,
                         fields: [
                             {
                                 name: "Close ticket",
@@ -527,7 +548,8 @@ client.on('messageReactionAdd', async (reaction, user) => {
                         }
                     }
                 }
-            ], 300000);
+            ]
+            menu = new Menu(channel, user.id, pages, 300000)
             menu.start();
             channel.send(`<@${user.id}>, your unique ticket code is \`${identifier}\`.`)
         }).catch(log.error)

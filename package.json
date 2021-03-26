@@ -4,6 +4,7 @@
     "discord.js": "^12.5.1",
     "discord.js-menu": "^2.3.1",
     "dotenv": "^8.2.0",
+    "dotenv-parse-variables": "^2.0.0",
     "enmap": "^5.8.4",
     "fs": "^0.0.1-security",
     "googleapis": "^68.0.0",
