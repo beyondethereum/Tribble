@@ -11,7 +11,7 @@
  *
  */
 
-dev = true; // Change this if you are contributing to Tribble.
+dev = false; // Change this if you are contributing to Tribble.
 const dotenvParseVariables = require('dotenv-parse-variables');
 env = require('dotenv').config({ path: dev ? 'dev.env' : '.env' });
 env = dotenvParseVariables(env.parsed)
