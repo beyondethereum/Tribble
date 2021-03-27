@@ -11,23 +11,10 @@ Tribble is a discord.js payment bot based off of [discord.js-menu](https://githu
 ## Features
 * Creates individual ticket channels in your server for payments.
 * Generates a unique ticket code so payments have a minimal chance of being repeated.
-* Automates payments received of your choice (currently supports Venmo, PayPal, and CashApp)
+* Automates payments received of your choice (currently supports Venmo, PayPal, and Cash App)
 
-## Setup 
-1. Clone the repository using git.
-```sh
-git clone https://github.com/FivePixels/Tribble.git
-```
-2. Grab and install node package dependencies.
-```sh
-yarn install
-```
-3. Edit the `.env` file to your configuration.
-4. ???
-5. 🎉
-
-## Configuration
-For understanding the configuration, view the [Wiki](https://github.com/FivePixels/Tribble/wiki).
+## Setup and Configuration
+For first time installation and configuration, view the [Wiki](https://github.com/FivePixels/Tribble/wiki).
 
 ## Acknowledgements
 * [discord.js-menu](https://github.com/jowsey/discord.js-menu) by Jowsey
