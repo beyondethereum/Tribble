@@ -88,35 +88,11 @@ client.on('ready', async () => {
             type: env.PRESENCE_TYPE.toUpperCase()
         }
     })
-    if (client.guilds.cache.get((env.GUILD_ID).toString()).member(client.user).hasPermission('ADMINISTRATOR', false)) {
+    if (client.guilds.cache.get(env.GUILD_ID).member(client.user).hasPermission('ADMINISTRATOR', false)) {
         log.success('Bot has the \'ADMINISTRATOR\' permission');
     } else log.warn('Bot does not have \'ADMINISTRATOR\' permission');
     purchasedRole = client.guilds.cache.get(env.GUILD_ID).roles.cache.get(env.PURCHASED_ROLE_ID);
-    if (env.USE_CASHAPP) {
-        cashappEmoji = client.emojis.cache.find(emoji => emoji.name === "cashapp");
-        if (!cashappEmoji) {
-            log.error(`Cash App emoji was not found. The emoji must be named "cashapp".`)
-            process.exit(1)
-        }
-        caEmojiID = cashappEmoji.id;
-    }
-    if (env.USE_VENMO) {
-        venmoEmoji = client.emojis.cache.find(emoji => emoji.name === "venmo");
-        if (!venmoEmoji) {
-            log.error(`Venmo emoji was not found. The emoji must be named "venmo".`)
-            process.exit(1)
-        }
-        vEmojiID = venmoEmoji.id;
-    }
-    if (env.USE_PAYPAL) {
-        paypalEmoji = client.emojis.cache.find(emoji => emoji.name === "paypal");
-        if (!paypalEmoji) {
-            log.error(`PayPal emoji was not found. The emoji must be named "paypal".`)
-            process.exit(1)
-        }
-        ppEmojiID = paypalEmoji.id;
-    }
-})
+});
 
 client.on('message', async message => {
     if (message.content === `${env.COMMAND_PREFIX}close`) {
@@ -167,7 +143,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
             id = settings.get(`${user.id}`)
             prevChannel = reaction.message.guild.channels.cache.find(channel => channel.name === `ticket-${id}`);
             if (typeof prevChannel !== 'undefined') {
-                prevChannel.delete()
+                prevChannel.delete();
             }
         }
         var identifier = Math.floor(100000 + Math.random() * 900000); // generate a random, six-digit number.
@@ -230,15 +206,15 @@ client.on('messageReactionAdd', async (reaction, user) => {
             }
             if (!env.USE_CASHAPP) {
                 paymentFields.splice(paymentFields.findIndex(({ name }) => name === "Cash App"), 1);
-                delete paymentReacts['🇨']
+                delete paymentReacts['🇨'];
             }
             if (!env.USE_VENMO) {
                 paymentFields.splice(paymentFields.findIndex(({ name }) => name === "Venmo"), 1);
-                delete paymentReacts['🇻']
+                delete paymentReacts['🇻'];
             }
             if (!env.USE_PAYPAL) {
                 paymentFields.splice(paymentFields.findIndex(({ name }) => name === "PayPal"), 1);
-                delete paymentReacts['🇵']
+                delete paymentReacts['🇵'];
             }
             const pages = [
                 {
@@ -549,7 +525,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
                     }
                 }
             ]
-            menu = new Menu(channel, user.id, pages, 300000)
+            menu = new Menu(channel, user.id, pages, 300000);
             menu.start();
             channel.send(`<@${user.id}>, your unique ticket code is \`${identifier}\`.`)
         }).catch(log.error)
