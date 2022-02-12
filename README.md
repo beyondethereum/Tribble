@@ -16,6 +16,23 @@ Tribble is a discord.js payment bot based off of [discord.js-menu](https://githu
 ## Setup and Configuration
 For first time installation and configuration, view the [Wiki](https://github.com/FivePixels/Tribble/wiki).
 
+## Contributing
+All contributions are welcome. 
+
+Make sure there are no changes made to the original `.env` file. If there are changes made,  run `git checkout HEAD -- .env` to reset it. 
+
+Now, create a copy of the original `.env` file by running `cp .env dev.env`. This creates a file named `dev.env` you will modify when contributing and testing Tribble. 
+
+Next, make sure to set the `dev` variable.
+
+**index.js**
+```js
+dev = true; // Change this if you are contributing to Tribble.
+```
+
+Before making a pull request, make sure the state of the repository is one in which a user could use without issues. This means, make sure that you set the `dev` variable back to `false` when you are ready to commit.
+
+
 ## Acknowledgements
 * [discord.js-menu](https://github.com/jowsey/discord.js-menu) by Jowsey
 * [DiscordTickets](https://github.com/discord-tickets/bot) and [leekslazylogger](https://github.com/eartharoid/leekslazylogger) by eartharoid
