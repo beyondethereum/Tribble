@@ -36,6 +36,8 @@ const settings = new enmap({
     fetchAll: true
 });
 
+providerEmails = {"cashapp":"cash@square.com", "venmo":"venmo@venmo.com", "paypal":"service@paypal.com"}
+
 // check for all required variables
 if ((!env.DISCORD_TOKEN ||
     !env.GOOGLE_CLIENT_ID ||
@@ -66,10 +68,16 @@ var auth = new google.auth.OAuth2(
 auth.setCredentials({ refresh_token: env.GOOGLE_REFRESH_TOKEN });
 
 async function checkForEmail(auth, payment, code) {
+    let fromAddress;
+    for (provider in providerEmails) {
+        if (provider == payment) {
+            fromAddress = providerEmails[`${provider}`]
+        }
+    }
     const gmail = google.gmail({ version: 'v1', auth });
     const res = await gmail.users.messages.list({
         userId: 'me',
-        q: `${payment} ${code} ${env.PAYMENT_AMOUNT}`
+        q: `sent you ${code} from:${fromAddress}`
     })
     const messages = res.data.messages;
     if (messages) {
@@ -91,7 +99,9 @@ client.on('ready', async () => {
     if (client.guilds.cache.get(env.GUILD_ID).member(client.user).hasPermission('ADMINISTRATOR', false)) {
         log.success('Bot has the \'ADMINISTRATOR\' permission');
     } else log.warn('Bot does not have \'ADMINISTRATOR\' permission');
-    purchasedRole = client.guilds.cache.get(env.GUILD_ID).roles.cache.get(env.PURCHASED_ROLE_ID);
+    client.guilds.cache.get(env.GUILD_ID).roles.fetch().then((roles) => {
+        purchasedRole = roles.cache.get(env.PURCHASED_ROLE_ID);
+    });
 });
 
 client.on('message', async message => {
@@ -533,4 +543,3 @@ client.on('messageReactionAdd', async (reaction, user) => {
         return;
     }
 })
-
