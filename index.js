@@ -93,49 +93,47 @@ async function checkForEmail(auth, payment, code) {
     let query = providerInfo.find(object => object.name === payment).messageQuery;
     let price = providerInfo.find(object => object.name === payment).paymentAmount;
     const gmail = google.gmail({ version: 'v1', auth });
-    await gmail.users.messages.list({
+    const emails = (await gmail.users.messages.list({
         userId: 'me',
         q: `${query} ${code} from:${fromAddress}`
-    }).then(async emails => {
-        emails = emails.data.messages
-        if (emails != undefined) {
-            if (emails.length == 1) {
-                log.info("An email was found with the searched parameters.");
-                await gmail.users.messages.get({
-                    userId: 'me',
-                    id: `${emails[0].id}`
-                }).then(email => {
-                    let subject = email.data.payload.headers.find(object => object.name === 'Subject').value;
-                    switch (payment) {
-                        case 'cashapp':
-                            if (subject.match(`^[^$]*${query} (\\${price}) for (${code})$`).length == 3) {
-                                // user sent correct amount + didn't fake note, all three match groups matched
-                                valid = true;
-                            } else {
-                                // user either didn't send correct amount or faked note
-                                valid = false;
-                            }
-                            break;
-                        default:
-                            // venmo/paypal
-                            if (subject.includes`${code}`) {
-                                // malicious email, venmo/paypal doesn't send the note in the subject
-                                valid = false;
-                            } else if (subject.includes(`${query} ${price}`)) {
-                                // TODO: check body
-                                valid = true;
-                            }
-                            break;
-                    }
-                });
-            } else if (emails.length > 1 || emails.length < 1) {
-                log.warn("Either no email was found or multiple emails were found with the provided code.");
-                valid = false;
-            }
-        } else {
+    })).data.messages;
+    if (emails != undefined) {
+        if (emails.length == 1) {
+            log.info("An email was found with the searched parameters.");
+            await gmail.users.messages.get({
+                userId: 'me',
+                id: `${emails[0].id}`
+            }).then(email => {
+                let subject = email.data.payload.headers.find(object => object.name === 'Subject').value;
+                switch (payment) {
+                    case 'cashapp':
+                        if (subject.match(`^[^$]*${query} (\\${price}) for (${code})$`).length == 3) {
+                            // user sent correct amount + didn't fake note, all three match groups matched
+                            valid = true;
+                        } else {
+                            // user either didn't send correct amount or faked note
+                            valid = false;
+                        }
+                        break;
+                    default:
+                        // venmo/paypal
+                        if (subject.includes`${code}`) {
+                            // malicious email, venmo/paypal doesn't send the note in the subject
+                            valid = false;
+                        } else if (subject.includes(`${query} ${price}`)) {
+                            // TODO: check body
+                            valid = true;
+                        }
+                        break;
+                }
+            });
+        } else if (emails.length > 1 || emails.length < 1) {
+            log.warn("Either no email was found or multiple emails were found with the provided code.");
             valid = false;
         }
-    });
+    } else {
+        valid = false;
+    }
     return valid;
 }
 
