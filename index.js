@@ -36,7 +36,27 @@ const settings = new enmap({
     fetchAll: true
 });
 
-providerEmails = {"cashapp":"cash@square.com", "venmo":"venmo@venmo.com", "paypal":"service@paypal.com"}
+providerInfo = [
+    {
+        name: `cashapp`,
+        email: `cash@square.com`,
+        // messageQuery checks to see if it ends in .00, if it does truncate, otherwise keep the exact decimal
+        paymentAmount: `${env.PAYMENT_AMOUNT.endsWith('.00') ? env.PAYMENT_AMOUNT.substring(0, env.PAYMENT_AMOUNT.length - 3) : env.PAYMENT_AMOUNT}`,
+        messageQuery: `sent you`
+    },
+    {
+        name: `venmo`,
+        email: `venmo@venmo.com`,
+        paymentAmount: `${env.PAYMENT_AMOUNT}`,
+        messageQuery: `paid you`
+    },
+    {
+        name: `paypal`,
+        email: `service@paypal.com`,
+        paymentAmount: `${env.PAYMENT_AMOUNT}`,
+        messageQuery: ``
+    }
+];
 
 // check for all required variables
 if ((!env.DISCORD_TOKEN ||
@@ -45,12 +65,12 @@ if ((!env.DISCORD_TOKEN ||
     !env.GOOGLE_REFRESH_TOKEN ||
     !env.GUILD_ID ||
     !env.TICKET_CATEGORY_ID ||
-    !env.PURCHASED_ROLE_ID || 
+    !env.PURCHASED_ROLE_ID ||
     typeof env.USE_CASHAPP !== 'boolean' ||
-    typeof env.USE_VENMO !== 'boolean' || 
+    typeof env.USE_VENMO !== 'boolean' ||
     typeof env.USE_PAYPAL !== 'boolean' ||
-    !env.PAYMENT_AMOUNT || 
-    !env.PAYMENT_CURRENCY) || 
+    !env.PAYMENT_AMOUNT ||
+    !env.PAYMENT_CURRENCY) ||
     (env.USE_CASHAPP && !env.CASHAPP_USERNAME) ||
     (env.USE_VENMO && (!env.VENMO_USERNAME || !env.VENMO_4_DIGITS)) ||
     (env.USE_PAYPAL && !env.PAYPALME_LINK)) {
@@ -68,24 +88,55 @@ var auth = new google.auth.OAuth2(
 auth.setCredentials({ refresh_token: env.GOOGLE_REFRESH_TOKEN });
 
 async function checkForEmail(auth, payment, code) {
-    let fromAddress;
-    for (provider in providerEmails) {
-        if (provider == payment) {
-            fromAddress = providerEmails[`${provider}`]
-        }
-    }
+    let valid;
+    let fromAddress = providerInfo.find(object => object.name === payment).email;
+    let query = providerInfo.find(object => object.name === payment).messageQuery;
+    let price = providerInfo.find(object => object.name === payment).paymentAmount;
     const gmail = google.gmail({ version: 'v1', auth });
-    const res = await gmail.users.messages.list({
+    await gmail.users.messages.list({
         userId: 'me',
-        q: `sent you ${code} from:${fromAddress}`
-    })
-    const messages = res.data.messages;
-    if (messages) {
-        log.info("An email was found with the searched parameters.");
-        return true;
-    } else {
-        return false;
-    }
+        q: `${query} ${code} from:${fromAddress}`
+    }).then(async emails => {
+        emails = emails.data.messages
+        if (emails != undefined) {
+            if (emails.length == 1) {
+                log.info("An email was found with the searched parameters.");
+                await gmail.users.messages.get({
+                    userId: 'me',
+                    id: `${emails[0].id}`
+                }).then(email => {
+                    let subject = email.data.payload.headers.find(object => object.name === 'Subject').value;
+                    switch (payment) {
+                        case 'cashapp':
+                            if (subject.match(`^[^$]*${query} (\\${price}) for (${code})$`).length == 3) {
+                                // user sent correct amount + didn't fake note, all three match groups matched
+                                valid = true;
+                            } else {
+                                // user either didn't send correct amount or faked note
+                                valid = false;
+                            }
+                            break;
+                        default:
+                            // venmo/paypal
+                            if (subject.includes`${code}`) {
+                                // malicious email, venmo/paypal doesn't send the note in the subject
+                                valid = false;
+                            } else if (subject.includes(`${query} ${price}`)) {
+                                // TODO: check body
+                                valid = true;
+                            }
+                            break;
+                    }
+                });
+            } else if (emails.length > 1 || emails.length < 1) {
+                log.warn("Either no email was found or multiple emails were found with the provided code.");
+                valid = false;
+            }
+        } else {
+            valid = false;
+        }
+    });
+    return valid;
 }
 
 client.on('ready', async () => {
